@@ -1,0 +1,8 @@
+.admin__menu .level-0.item-asco-admin > a::before {
+    background-image: url('../images/logo_ascorak_black.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    content:"";
+    height: 28px;
+}
