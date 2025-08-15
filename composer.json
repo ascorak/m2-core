@@ -1,0 +1,20 @@
+{
+    "name": "ascorak/m2-core",
+    "version": "1.0.0",
+    "description": "N/A",
+    "type": "magento2-module",
+    "required": {
+        "magento/framework": "*"
+    },
+    "license": [
+        "Proprietary"
+    ],
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Ascorak\\Core\\": ""
+        }
+    }
+}
