@@ -1,13 +1,13 @@
 {
     "name": "ascorak/m2-core",
     "version": "1.0.0",
-    "description": "N/A",
+    "description": "Core module for shared code of Ascorak's M2 modules",
     "type": "magento2-module",
     "required": {
         "magento/framework": "*"
     },
     "license": [
-        "Proprietary"
+        "OSL-3.0"
     ],
     "autoload": {
         "files": [
