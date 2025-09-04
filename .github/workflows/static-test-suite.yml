@@ -1,0 +1,67 @@
+name: Coding Standards
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**.md"
+    workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Allow ddev to use a Github token to prevent rate limiting by tests
+  DDEV_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  static-test-suite:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - m2-version: "2.4.4"
+            php-version: "8.1"
+          - m2-version: "2.4.8"
+            php-version: "8.4"
+    name: Static test suite
+    runs-on: ubuntu-latest
+    env:
+      EXTENSION_PACKAGE_NAME: "ascorak/m2-core"
+      EXTENSION_PATH: "m2-core"
+    steps:
+      - name: Install Magento 2
+        uses: julienloizelet/magento2-ddev-installation@v4
+        with:
+          php_version: ${{ matrix.php-version }}
+          magento_version: $${{ matrix.m2-version }}
+          composer_auth: ${{ secrets.M2_COMPOSER_AUTH }}
+          magento_repository: "https://repo.magento.com/"
+
+      - name: Clone module files
+        uses: actions/checkout@v4
+        with:
+          path: my-own-modules/${{ env.EXTENSION_PATH }}
+
+      - name: Prepare composer repositories
+        run: |
+          ddev composer config --unset repositories.0
+          ddev composer config repositories.0 '{"type": "path", "url": "my-own-modules/${{ env.EXTENSION_PATH }}", "canonical": true, "options": {"symlink": false}}'
+          ddev composer config repositories.1 '{"type": "composer", "url": "https://repo.magento.com/", "exclude": ["${{ env.EXTENSION_PACKAGE_NAME }}"]}'
+
+      - name: Add module as composer dependency
+        run: |
+          ddev composer require ${{ env.EXTENSION_PACKAGE_NAME }}:@dev --no-interaction
+
+      - name: PHP CODE SNIFFER
+        run: |
+          ddev phpcs vendor/${{ env.EXTENSION_PACKAGE_NAME }}
+
+      - name: PHP MESS DETECTOR
+        run: |
+          ddev phpmd vendor/${{ env.EXTENSION_PACKAGE_NAME }}
+
+      - name: PHPSTAN
+        run: |
+          ddev exec cat dev/tests/static/testsuite/Magento/Test/Php/_files/phpstan/phpstan.neon
+          ddev phpstan vendor/${{ env.EXTENSION_PACKAGE_NAME }} --debug
