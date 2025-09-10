@@ -20,9 +20,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - m2-version: "2.4.4"
+          - m2-version: "2.4.4-p15"
             php-version: "8.1"
-          - m2-version: "2.4.8"
+          - m2-version: "2.4.8-p2"
             php-version: "8.4"
     name: Static test suite
     runs-on: ubuntu-latest
