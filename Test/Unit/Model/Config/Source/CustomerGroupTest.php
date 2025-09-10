@@ -13,27 +13,54 @@ use Magento\Framework\Api\SortOrder;
 use Magento\Framework\Api\SortOrderBuilder;
 use Magento\Framework\Convert\DataObject;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class CustomerGroupTest extends TestCase
 {
+
+    /** @var GroupInterface|MockObject $groupMock */
     protected $groupMock;
+
+    /** @var GroupSearchResultsInterface|MockObject $searchResultsMock */
     protected $searchResultsMock;
+
+    /** @var GroupRepositoryInterface|MockObject $groupRepositoryMock */
     protected $groupRepositoryMock;
+
+    /** @var SearchCriteriaInterface|MockObject $searchCriteriaMock */
     protected $searchCriteriaMock;
+
+    /** @var SearchCriteriaBuilder|MockObject $searchCriteriaBuilderMock */
     protected $searchCriteriaBuilderMock;
+
+    /** @var Filter|MockObject $filterMock */
     protected $filterMock;
+
+    /** @var FilterBuilder|MockObject $filterBuilderMock */
     protected $filterBuilderMock;
+
+    /** @var DataObject|MockObject $converterMock */
     protected $converterMock;
+
+    /** @var SortOrder|MockObject $sortOrderMock */
     protected $sortOrderMock;
+
+    /** @var SortOrderBuilder|MockObject $sortOrderBuilderMock */
     protected $sortOrderBuilderMock;
+
+    /** @var CustomerGroup $source  */
     protected $source;
 
+    /** @var array[] $convertedOptions */
     protected $convertedOptions = [
         ['value' => 'test', 'label' => 'Test'],
         ['value' => 'test2', 'label' => 'Test 2']
     ];
 
+    /**
+     * @inheirtDoc
+     */
     protected function setUp(): void
     {
         $this->groupMock = $this->getMockForAbstractClass(GroupInterface::class);
@@ -89,12 +116,22 @@ class CustomerGroupTest extends TestCase
         ]);
     }
 
+    /**
+     * Test toOptionArray
+     *
+     * @return void
+     */
     public function testToOptionArray(): void
     {
         $this->expectedForGetOptions();
         $this->assertSame($this->convertedOptions, $this->source->toOptionArray());
     }
 
+    /**
+     * Test toArray
+     *
+     * @return void
+     */
     public function testToArray(): void
     {
         $expectedArray = [
@@ -105,6 +142,11 @@ class CustomerGroupTest extends TestCase
         $this->assertSame($expectedArray, $this->source->toArray());
     }
 
+    /**
+     * Setup expectation for getOptions
+     *
+     * @return void
+     */
     protected function expectedForGetOptions(): void
     {
         $this->filterBuilderMock->expects($this->once())

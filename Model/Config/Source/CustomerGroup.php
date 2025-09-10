@@ -37,6 +37,8 @@ class CustomerGroup implements OptionSourceInterface
     }
 
     /**
+     * To option array
+     *
      * @return array
      */
     public function toOptionArray(): array
@@ -45,6 +47,8 @@ class CustomerGroup implements OptionSourceInterface
     }
 
     /**
+     * To array
+     *
      * @return array
      */
     public function toArray(): array
@@ -58,6 +62,8 @@ class CustomerGroup implements OptionSourceInterface
     }
 
     /**
+     * Get options
+     *
      * @return array
      */
     protected function getOptions(): array
