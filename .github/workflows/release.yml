@@ -1,0 +1,100 @@
+name: Create Release
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: Tag name with v prefix
+        type: string
+        required: true
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      EXTENSION_ZIP_NAME: "ascorak-m2-core"
+
+    steps:
+      - name: Check input and set version number
+        run: |
+          VERIF=$(echo ${{ github.event.inputs.tag_name }} | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$")
+          if [ -z "${VERIF}" ]; then
+            echo "Tag name '${{ github.event.inputs.tag_name }}' does not comply with naming convention vX.Y.Z"
+            exit 1
+          fi
+
+      - name: Check if tag exists
+        run: |
+          if git ls-remote --tags origin ${{ github.event.inputs.tag_name }} | grep -q "${{ github.event.inputs.tag_name }}"
+          then
+            echo "Tag ${{ github.event.inputs.tag_name }} allready exists!"
+            exit 1
+          fi
+
+      - name: Set version variables
+        run: |
+          echo "VERSION_NUMBER=$( echo ${{ github.event.inputs.tag_name }} | sed 's/v//g' )" >> $GITHUB_ENV
+          echo "VERSION_SOURCE=${{ env.EXTENSION_ZIP_NAME }}-${{ env.VERSION_NUMBER }}" >> $GITHUB_ENV
+
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          path: ${{ env.VERSION_SOURCE }}
+
+      - name: Check version ${{ env.VERSION_NUMBER }} consistency
+        # Check composer.json and CHANGELOG.md
+        run: |
+          cd ${{ env.VERSION_SOURCE }}
+          if [ "$(jq -r '.version' composer.json)" != "${{ env.VERSION_NUMBER }}" ]; then
+            echo "COMPOSER VERSION KO"
+            exit 1
+          fi
+          if ! grep -q "## \[${{ env.VERSION_NUMBER }}]" CHANGELOG.md; then
+            echo "VERSION CHANGELOG KO"
+            exit 1
+          fi
+
+      - name: Create ZIP
+        run: |
+          zip -r "${{ env.VERSION_SOURCE }}.zip" "${{ env.VERSION_SOURCE }}/" -x "${{ env.VERSION_SOURCE }}/.git*"
+          if [ ! -f "${{ env.VERSION_SOURCE }}.zip" ]; then
+            echo "Error: Failed to create ZIP"
+            exit 1
+          fi
+
+      - name: Validate ZIP
+        uses: docker://ghcr.io/julienloizelet/m2-extension-zip-validator:latest
+        with:
+          args: "${{ env.VERSION_SOURCE }}.zip"
+
+      - name: Create Tag
+        uses: rickstaa/action-create-tag@v1
+        with:
+          tag: ${{ github.event.inputs.tag_name }}
+          message: "Release ${{ env.VERSION_NUMBER }}"
+
+      - name: Prepare release note
+        run: |
+          awk -v ver="[${{ env.VERSION_NUMBER }}]" '
+            /^## / { if (p) { exit }; if ($2 == ver) { p=1; next } }
+            p && NF { print }' "${{ env.VERSION_SOURCE }}/CHANGELOG.md" > /tmp/CHANGELOG.txt
+          if [ ! -s /tmp/CHANGELOG.txt ]; then
+            echo "Error: No release notes found for ${{ env.VERSION_NUMBER }}"
+            exit 1
+          fi
+
+      - name: Create release ${{ env.VERSION_NUMBER }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.VERSION_SOURCE }}.zip
+          body_path: tmp/CHANGELOG.txt
+          name: ${{ env.VERSION_NUMBER }}
+          tag_name: ${{ github.event.inputs.tag_name }}
+          draft: false
+          prerelease: false
+
+      - name: Clean up
+        if: always()
+        run: rm -f /tmp/CHANGELOG.txt ${{ env.VERSION_SOURCE }}.zip
