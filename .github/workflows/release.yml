@@ -64,10 +64,16 @@ jobs:
             exit 1
           fi
 
-      - name: Validate ZIP
-        uses: docker://ghcr.io/julienloizelet/m2-extension-zip-validator:latest
+      - name: Clone ZIP validator
+        uses: actions/checkout@v4
         with:
-          args: "${{ env.VERSION_SOURCE }}.zip"
+          repository: julienloizelet/m2-extension-zip-validator
+          path: zip-validator
+
+      - name: Validate ZIP
+        run: |
+          chmod +x zip-validator/validate_m2_package.php
+          php zip-validator/validate_m2_package.php ${{ env.VERSION_SOURCE }}.zip
 
       - name: Create Tag
         uses: rickstaa/action-create-tag@v1
@@ -94,6 +100,26 @@ jobs:
           tag_name: ${{ github.event.inputs.tag_name }}
           draft: false
           prerelease: false
+
+      - name: Notify Packagist
+        run: |
+          if [ -z "${{ secrets.PACKAGIST_TOKEN }}" ]; then
+            echo "ERROR: PACKAGIST_TOKEN not found!"
+            exit 1
+          fi
+          RESPONSE=$(curl -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.PACKAGIST_TOKEN }}" \
+            -d '{"repository": {"url": "https://github.com/${{ github.repository }}"}}' \
+            "https://packagist.org/api/update-package?username=${{ github.actor }}&apiToken=${{ secrets.PACKAGIST_TOKEN }}"
+          )
+          if [[ $RESPONSE != "Package update triggered"* ]]; then
+            echo "ERROR: Failed to notify Packagist"
+            echo "Response: $RESPONSE"
+            exit 1
+          else
+            echo "Packagist notified successfully"
+          fi
 
       - name: Clean up
         if: always()
