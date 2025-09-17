@@ -20,7 +20,8 @@ jobs:
       - name: Check input and set version number
         run: |
           VERIF=$(echo ${{ github.event.inputs.tag_name }} | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$")
-          if [ -z "${VERIF}" ]; then
+          if [ -z "${VERIF}" ]
+          then
             echo "Tag name '${{ github.event.inputs.tag_name }}' does not comply with naming convention vX.Y.Z"
             exit 1
           fi
@@ -50,11 +51,13 @@ jobs:
         # Check composer.json and CHANGELOG.md
         run: |
           cd ${{ env.VERSION_SOURCE }}
-          if [ "$(jq -r '.version' composer.json)" != "${{ env.VERSION_NUMBER }}" ]; then
+          if [ "$(jq -r '.version' composer.json)" != "${{ env.VERSION_NUMBER }}" ]
+          then
             echo "COMPOSER VERSION KO"
             exit 1
           fi
-          if ! grep -q "## \[${{ env.VERSION_NUMBER }}]" CHANGELOG.md; then
+          if ! grep -q "## \[${{ env.VERSION_NUMBER }}\]" CHANGELOG.md
+          then
             echo "VERSION CHANGELOG KO"
             exit 1
           fi
@@ -62,7 +65,8 @@ jobs:
       - name: Create ZIP
         run: |
           zip -r "${{ env.VERSION_SOURCE }}.zip" "${{ env.VERSION_SOURCE }}/" -x "${{ env.VERSION_SOURCE }}/.git*"
-          if [ ! -f "${{ env.VERSION_SOURCE }}.zip" ]; then
+          if [ ! -f "${{ env.VERSION_SOURCE }}.zip" ]
+          then
             echo "Error: Failed to create ZIP"
             exit 1
           fi
@@ -92,14 +96,20 @@ jobs:
 
       - name: Prepare release note
         run: |
-          awk -v ver="${{ env.VERSION_NUMBER }}"
-            '/^## / {
-              split($0, parts, "[[]");
-              splite(parts[2], version, "]");
-              if (p) exit;
-              if (version[1] == ver) { p=1; next }
-            } p && NF { print }' "${{ env.VERSION_SOURCE }}/CHANGELOG.md" > /tmp/CHANGELOG.txt
-          if [ ! -s /tmp/CHANGELOG.txt ]; then
+          awk -v ver="${{ env.VERSION_NUMBER }}" '
+            /^## \[[0-9]+\.[0-9]+\.[0-9]+\]/ {
+                split($0, arr, /\[|\]/);
+                current_version = arr[2];
+                if (current_version == ver) {
+                found = 1;
+                next;
+              } else if (found) {
+                exit;
+              }
+            }
+            found && !/^## \[/ { print }' "${{ env.VERSION_SOURCE }}/CHANGELOG.md" > /tmp/CHANGELOG.txt
+          if [ ! -s /tmp/CHANGELOG.txt ]
+          then
             echo "Error: No release notes found for ${{ env.VERSION_NUMBER }}"
             exit 1
           fi
@@ -108,7 +118,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ env.VERSION_SOURCE }}.zip
-          body_path: tmp/CHANGELOG.txt
+          body_path: /tmp/CHANGELOG.txt
           name: ${{ env.VERSION_NUMBER }}
           tag_name: ${{ github.event.inputs.tag_name }}
           draft: false
@@ -116,7 +126,8 @@ jobs:
 
       - name: Notify Packagist
         run: |
-          if [ -z "${{ secrets.PACKAGIST_TOKEN }}" ]; then
+          if [ -z "${{ secrets.PACKAGIST_TOKEN }}" ]
+          then
             echo "ERROR: PACKAGIST_TOKEN not found!"
             exit 1
           fi
@@ -126,7 +137,8 @@ jobs:
             -d '{"repository": {"url": "https://github.com/${{ github.repository }}"}}' \
             "https://packagist.org/api/update-package?username=${{ github.actor }}&apiToken=${{ secrets.PACKAGIST_TOKEN }}"
           )
-          if [[ $RESPONSE != "Package update triggered"* ]]; then
+          if [[ $RESPONSE != "Package update triggered"* ]]
+          then
             echo "ERROR: Failed to notify Packagist"
             echo "Response: $RESPONSE"
             exit 1
