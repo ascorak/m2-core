@@ -92,9 +92,13 @@ jobs:
 
       - name: Prepare release note
         run: |
-          awk -v ver="[${{ env.VERSION_NUMBER }}]" '
-            /^## / { if (p) { exit }; if ($2 == ver) { p=1; next } }
-            p && NF { print }' "${{ env.VERSION_SOURCE }}/CHANGELOG.md" > /tmp/CHANGELOG.txt
+          awk -v ver="${{ env.VERSION_NUMBER }}"
+            '/^## / {
+              split($0, parts, "[[]");
+              splite(parts[2], version, "]");
+              if (p) exit;
+              if (version[1] == ver) { p=1; next }
+            } p && NF { print }' "${{ env.VERSION_SOURCE }}/CHANGELOG.md" > /tmp/CHANGELOG.txt
           if [ ! -s /tmp/CHANGELOG.txt ]; then
             echo "Error: No release notes found for ${{ env.VERSION_NUMBER }}"
             exit 1
