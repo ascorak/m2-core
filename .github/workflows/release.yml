@@ -33,9 +33,12 @@ jobs:
             exit 1
           fi
 
-      - name: Set version variables
+      - name: Set version number
         run: |
           echo "VERSION_NUMBER=$( echo ${{ github.event.inputs.tag_name }} | sed 's/v//g' )" >> $GITHUB_ENV
+
+      - name: Set version source
+        run: |
           echo "VERSION_SOURCE=${{ env.EXTENSION_ZIP_NAME }}-${{ env.VERSION_NUMBER }}" >> $GITHUB_ENV
 
       - name: Checkout sources
