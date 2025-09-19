@@ -142,7 +142,7 @@ jobs:
             echo "ERREUR: Réponse vide"
             exit 1
           fi
-          if ! echo $REPONSE | jq empty > dev/null
+          if ! echo $REPONSE | jq empty > /dev/null
           then
             echo "ERREUR: JSON invalide"
             exit 1
