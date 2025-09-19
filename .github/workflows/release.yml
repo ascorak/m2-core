@@ -137,14 +137,24 @@ jobs:
             -d '{"repository": {"url": "https://github.com/${{ github.repository }}"}}' \
             "https://packagist.org/api/update-package?username=${{ github.actor }}&apiToken=${{ secrets.PACKAGIST_TOKEN }}"
           )
-          if [[ $RESPONSE != "Package update triggered"* ]]
+          if [ -z $RESPONSE ]
           then
-            echo "ERROR: Failed to notify Packagist"
-            echo "Response: $RESPONSE"
+            echo "ERREUR: Réponse vide"
             exit 1
-          else
-            echo "Packagist notified successfully"
           fi
+          if ! echo $REPONSE | jq empty > dev/null
+          then
+            echo "ERREUR: JSON invalide"
+            exit 1
+          fi
+          $STATUS=$(echo $RESPONSE | jq -r '.status')
+          if [ "$STATUS" != "success" ]
+          then
+            echo "ERREUR: Failed to notify Packagist"
+            echo "$RESPONSE"
+            exit 1
+          fi
+          echo "Packagist notified successfully"
 
       - name: Clean up
         if: always()
